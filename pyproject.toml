@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "kiro-health-monitor"
+version = "0.1.0"
+description = "Kiro IDE Health Monitor - MCP Server Power for proactive health monitoring"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp[cli]",
+]
+
+[project.scripts]
+kiro-health-monitor = "src.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "hypothesis",
+    "pytest-asyncio",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
