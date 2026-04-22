@@ -1,10 +1,10 @@
 """Window resume detector – tracks when the IDE window goes to/from background."""
 
-import logging
 import time
 from typing import Callable, Optional
 
-logger = logging.getLogger(__name__)
+from kiro_health_monitor.log import log
+
 
 
 class WindowResumeDetector:
@@ -23,17 +23,17 @@ class WindowResumeDetector:
     def start_listening(self) -> None:
         """Start listening for window events."""
         self._listening = True
-        logger.info("WindowResumeDetector: started listening")
+        log.info("WindowResumeDetector: started listening")
 
     def stop_listening(self) -> None:
         """Stop listening for window events."""
         self._listening = False
-        logger.info("WindowResumeDetector: stopped listening")
+        log.info("WindowResumeDetector: stopped listening")
 
     def record_background_timestamp(self) -> None:
         """Record the current time as the moment the window went to background."""
         self._background_timestamp = time.time()
-        logger.debug(
+        log.debug(
             "WindowResumeDetector: background timestamp recorded at %s",
             self._background_timestamp,
         )
@@ -67,7 +67,7 @@ class WindowResumeDetector:
         else:
             duration_ms = (time.time() - self._background_timestamp) * 1000
 
-        logger.info(
+        log.info(
             "WindowResumeDetector: simulating resume (duration=%.1f ms)",
             duration_ms,
         )
@@ -76,7 +76,7 @@ class WindowResumeDetector:
             try:
                 cb(duration_ms)
             except Exception:
-                logger.exception("WindowResumeDetector: callback error")
+                log.exception("WindowResumeDetector: callback error")
 
         self._background_timestamp = None
 

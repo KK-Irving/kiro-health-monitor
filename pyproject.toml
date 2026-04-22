@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "kiro-health-monitor"
-version = "0.1.0"
+version = "0.1.1"
 description = "Kiro IDE Health Monitor - MCP Server Power for proactive health monitoring"
 readme = "README.md"
 license = "MIT"
@@ -26,10 +26,10 @@ Homepage = "https://github.com/KK-Irving/kiro-health-monitor"
 Repository = "https://github.com/KK-Irving/kiro-health-monitor"
 
 [project.scripts]
-kiro-health-monitor = "src.__main__:main"
+kiro-health-monitor = "kiro_health_monitor.__main__:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
+packages = ["kiro_health_monitor"]
 
 [project.optional-dependencies]
 dev = [

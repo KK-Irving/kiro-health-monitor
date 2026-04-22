@@ -17,13 +17,13 @@ from unittest.mock import patch
 
 import pytest
 
-from src.config.config_manager import ConfigManager
-from src.core.health_monitor_core import HealthMonitorCore
-from src.detectors.heartbeat_checker import HeartbeatChecker
-from src.detectors.task_status_detector import TaskStatusDetector
-from src.detectors.window_resume_detector import WindowResumeDetector
-from src.notifications.notification_manager import NotificationManager
-from src.types import (
+from kiro_health_monitor.config.config_manager import ConfigManager
+from kiro_health_monitor.core.health_monitor_core import HealthMonitorCore
+from kiro_health_monitor.detectors.heartbeat_checker import HeartbeatChecker
+from kiro_health_monitor.detectors.task_status_detector import TaskStatusDetector
+from kiro_health_monitor.detectors.window_resume_detector import WindowResumeDetector
+from kiro_health_monitor.notifications.notification_manager import NotificationManager
+from kiro_health_monitor.types import (
     AlertType,
     CheckSource,
     HealthStatus,
@@ -143,7 +143,7 @@ class TestWindowResumeHealthCheck:
         wrd.on_resume(core._on_window_resume)
 
         # Record background timestamp, then simulate a short absence (< 10 min)
-        with patch("src.detectors.window_resume_detector.time") as mock_time:
+        with patch("kiro_health_monitor.detectors.window_resume_detector.time") as mock_time:
             mock_time.time.return_value = 1000.0
             wrd.record_background_timestamp()
 
@@ -162,7 +162,7 @@ class TestWindowResumeHealthCheck:
         wrd.on_resume(core._on_window_resume)
 
         # Record background timestamp, then simulate >10 min absence
-        with patch("src.detectors.window_resume_detector.time") as mock_time:
+        with patch("kiro_health_monitor.detectors.window_resume_detector.time") as mock_time:
             mock_time.time.return_value = 1000.0
             wrd.record_background_timestamp()
 
@@ -268,7 +268,7 @@ class TestAlertDedup:
 
     def test_duplicate_suppressed_within_window(self, components):
         nm = components["notification_manager"]
-        from src.types import Alert, AlertLevel
+        from kiro_health_monitor.types import Alert, AlertLevel
 
         alert = Alert(
             type=AlertType.HEARTBEAT_TIMEOUT,
@@ -286,7 +286,7 @@ class TestAlertDedup:
 
     def test_alert_sent_after_dedup_window(self, components):
         nm = components["notification_manager"]
-        from src.types import Alert, AlertLevel
+        from kiro_health_monitor.types import Alert, AlertLevel
 
         alert = Alert(
             type=AlertType.TASK_STALL,
@@ -300,7 +300,7 @@ class TestAlertDedup:
         assert first is True
 
         # Simulate time passing beyond 5-minute window
-        with patch("src.notifications.notification_manager.time") as mock_time:
+        with patch("kiro_health_monitor.notifications.notification_manager.time") as mock_time:
             mock_time.time.return_value = time.time() + 301  # > 300s
             second = nm.send_alert(alert)
             assert second is True

@@ -1,0 +1,12 @@
+{
+  "name": "One-Click Health Check",
+  "version": "1.0.0",
+  "description": "用户怀疑 IDE 假死时，可在侧边栏 Agent Hooks 中手动点击触发。执行完整健康检查并给出明确的状态判断和操作建议。",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "用户怀疑 Kiro IDE 可能处于假死状态，请立即执行完整健康检查：\n\n1. 先调用 check_health 获取完整健康报告\n2. 根据结果输出诊断：\n\n如果异常：\n🚨 **IDE 假死检测结果**\n- 状态：{status}\n- 心跳：最后一次心跳 {last_heartbeat}，连续超时 {consecutive_timeouts} 次\n- 卡顿任务：{stalled_tasks 详情}\n- 诊断结论：IDE 后台服务已失效 / 部分功能异常\n- 建议操作：\n  1. 取消当前正在执行的任务\n  2. 重启 Kiro IDE\n  3. 如果问题持续，检查系统资源占用\n\n如果正常：\n✅ **IDE 运行正常**\n- 状态：healthy\n- 心跳延迟：{latency}ms\n- 活跃任务：{active_count} 个\n- 结论：服务响应正常，如果感觉卡顿可能是网络延迟或任务本身耗时较长，建议继续等待。"
+  }
+}

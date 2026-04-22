@@ -1,11 +1,11 @@
 """NotificationManager - Alert notification management with deduplication."""
 
-import logging
 import time
 import uuid
 from typing import Optional
 
-from src.types import (
+from kiro_health_monitor.log import log
+from kiro_health_monitor.types import (
     Alert,
     AlertFilter,
     AlertLevel,
@@ -14,7 +14,6 @@ from src.types import (
     HealthStatus,
 )
 
-logger = logging.getLogger(__name__)
 
 # Deduplication window in seconds
 _DEDUP_WINDOW_SECONDS = 300  # 5 minutes
@@ -53,7 +52,7 @@ class NotificationManager:
         Returns True if the alert was sent, False if suppressed as duplicate.
         """
         if self.is_duplicate(alert.type.value):
-            logger.debug("Alert suppressed (duplicate): %s", alert.type.value)
+            log.debug("Alert suppressed (duplicate): %s", alert.type.value)
             return False
 
         record = AlertRecord(
@@ -70,7 +69,7 @@ class NotificationManager:
         self._store_record(record)
         self._last_sent[alert.type.value] = record.timestamp
 
-        logger.info(
+        log.info(
             "Alert sent [%s] %s: %s",
             record.level.value,
             record.type.value,
@@ -101,7 +100,7 @@ class NotificationManager:
 
         self._store_record(record)
 
-        logger.info("Recovery notification sent: %s", message)
+        log.info("Recovery notification sent: %s", message)
 
     def get_alert_history(
         self, filter: Optional[AlertFilter] = None

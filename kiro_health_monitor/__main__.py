@@ -1,6 +1,6 @@
 """Entry point for Kiro Health Monitor MCP Server."""
 
-from src.tools.mcp_server import create_server
+from kiro_health_monitor.tools.mcp_server import create_server
 
 
 def main() -> None:

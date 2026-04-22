@@ -1,53 +1,72 @@
 ---
 name: "kiro-health-monitor"
 displayName: "Kiro Health Monitor"
-description: "Kiro IDE 健康状态监控 Power，提供心跳检测、任务卡顿检测、窗口恢复检测和自动重试功能"
+description: "Kiro IDE health monitor Power with background heartbeat detection, stall detection, and auto-alerting via MCP Logs"
 keywords: ["kiro", "health", "monitor", "heartbeat", "stall", "responsive", "watchdog"]
 author: "KK-Irving"
 ---
 
 # Kiro Health Monitor
 
-Kiro IDE 健康状态监控 Power，提供对 Kiro IDE 后台服务的主动健康检测能力。
+Background health monitoring for Kiro IDE. Automatically detects unresponsive or degraded states and alerts via MCP Logs panel.
 
-## 功能概述
+## How It Works
 
-- **心跳检测**：定期向 MCP Server 发送心跳探测，检测后台服务存活状态。连续 2 次超时自动触发告警。
-- **任务卡顿检测**：监控正在执行的任务进度，区分正常长时间运行与真正卡顿，及时提醒用户。
-- **窗口恢复检测**：IDE 窗口从后台切回前台时自动执行健康检查；离开超过 10 分钟时执行深度检查。
-- **健康报告**：生成包含心跳状态、任务状态、窗口活跃时长、告警摘要的结构化 JSON 报告，异常指标附带建议修复操作。
-- **自动重试**：可选功能（默认关闭），检测到无响应时自动取消并重新执行卡顿任务，单任务最多重试 3 次。
+Once installed, the MCP server starts a background heartbeat loop automatically. Every `heartbeat_interval` seconds (default 5 minutes) it runs a health check and outputs status to the MCP Logs panel:
 
-## MCP 工具
+- **Healthy**: `Heartbeat OK`
+- **Degraded**: `DEGRADED - backend responding slowly`
+- **Unresponsive**: `UNRESPONSIVE - N consecutive failures, IDE may be frozen, consider retry or restart`
+- **Recovered**: `RECOVERED after N failures`
+- **Stalled tasks**: `N stalled task(s): task-id-1, task-id-2`
 
-| 工具名称 | 说明 |
-|---------|------|
-| `check_health` | 执行即时健康检查，返回完整的健康报告（HealthReport） |
-| `get_status` | 获取当前健康状态摘要，包括状态、心跳延迟、活跃/卡顿任务数 |
-| `configure_monitor` | 动态调整监控配置参数（心跳间隔、超时阈值、卡顿阈值、自动重试开关） |
-| `get_alert_history` | 查询历史告警记录，支持按时间范围和告警类型筛选 |
+No manual action needed. Just install and it runs.
 
-## 配置参数
+## MCP Tools
 
-| 参数 | 类型 | 默认值 | 范围 | 说明 |
-|------|------|--------|------|------|
-| `heartbeat_interval` | int | 30 | [10, 300] | 心跳检测间隔（秒） |
-| `response_timeout` | int | 5 | [1, 30] | 响应超时阈值（秒） |
-| `stall_threshold` | int | 60 | [10, 600] | 任务卡顿判定阈值（秒） |
-| `auto_retry` | string | `off` | `on` / `off` | 无响应时是否自动重试任务 |
+| Tool | Description |
+|------|-------------|
+| `check_health` | Full health report (status, heartbeat, tasks, window, alerts, recommendations) |
+| `get_status` | Quick status summary (status, latency, active/stalled task counts) |
+| `configure_monitor` | Adjust config at runtime (heartbeat interval, timeout, stall threshold, auto-retry) |
+| `get_alert_history` | Query alert history with optional time range and type filters |
 
-通过 `configure_monitor` 工具可在运行时动态调整以上参数。超出有效范围的值将被拒绝并返回范围说明。
+## Configuration
 
-## 安装和使用
+| Parameter | Type | Default | Range | Description |
+|-----------|------|---------|-------|-------------|
+| `heartbeat_interval` | int | 300 | [10, 300] | Heartbeat check interval in seconds (default 5 min) |
+| `response_timeout` | int | 5 | [1, 30] | Response timeout threshold in seconds |
+| `stall_threshold` | int | 60 | [10, 600] | Task stall detection threshold in seconds |
+| `auto_retry` | string | `off` | `on` / `off` | Alert notifications for stalled tasks when enabled |
 
-确保已安装 Python >= 3.10，然后通过 `uvx` 直接运行：
+Use `configure_monitor` to adjust at runtime. Out-of-range values are rejected with error messages.
 
-```bash
-uvx kiro-health-monitor
+## Optional: One-Click Health Check Hook
+
+Create `.kiro/hooks/manual-health-check.json` in your workspace for a manual trigger button:
+
+```json
+{
+  "name": "One-Click Health Check",
+  "version": "1.0.0",
+  "description": "Manual health check trigger from sidebar",
+  "when": { "type": "userTriggered" },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Run check_health and report the results. If status is not healthy, provide diagnosis and suggested actions."
+  }
+}
 ```
 
-无需额外安装依赖，`uvx` 会自动处理包的下载和运行。
+## Install
 
-## 关键词
+Requires Python >= 3.10.
+
+```bash
+pip install kiro-health-monitor
+```
+
+## Keywords
 
 kiro, health, monitor, heartbeat, stall, responsive, watchdog

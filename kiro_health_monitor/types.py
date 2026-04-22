@@ -145,7 +145,7 @@ class HealthReport:
 @dataclass
 class MonitorConfig:
     """监控配置"""
-    heartbeat_interval: int = 30    # 秒，默认 30
+    heartbeat_interval: int = 300   # 秒，默认 5 分钟
     response_timeout: int = 5       # 秒，默认 5
     stall_threshold: int = 60       # 秒，默认 60
     auto_retry: Literal['on', 'off'] = 'off'  # 默认 'off'

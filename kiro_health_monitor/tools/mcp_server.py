@@ -2,28 +2,124 @@
 
 from __future__ import annotations
 
+import asyncio
 import dataclasses
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from src.config.config_manager import ConfigManager
-from src.core.health_monitor_core import HealthMonitorCore
-from src.detectors.heartbeat_checker import HeartbeatChecker
-from src.detectors.task_status_detector import TaskStatusDetector
-from src.detectors.window_resume_detector import WindowResumeDetector
-from src.notifications.notification_manager import NotificationManager
-from src.types import AlertFilter, AlertType
+from kiro_health_monitor.config.config_manager import ConfigManager
+from kiro_health_monitor.core.health_monitor_core import HealthMonitorCore
+from kiro_health_monitor.detectors.heartbeat_checker import HeartbeatChecker
+from kiro_health_monitor.detectors.task_status_detector import TaskStatusDetector
+from kiro_health_monitor.detectors.window_resume_detector import WindowResumeDetector
+from kiro_health_monitor.notifications.notification_manager import NotificationManager
+from kiro_health_monitor.types import AlertFilter, AlertType, HealthStatus
+
+from kiro_health_monitor.log import log
+
+
+async def _background_heartbeat_loop(
+    health_monitor_core: HealthMonitorCore,
+    config_manager: ConfigManager,
+) -> None:
+    """Background loop that periodically performs health checks.
+
+    Uses Python logging (stderr) which Kiro captures and
+    displays in the MCP Logs panel as server log messages.
+    """
+    await asyncio.sleep(3)
+    log.info("Heartbeat loop started")
+
+    consecutive_failures = 0
+
+    while True:
+        try:
+            interval = config_manager.get_config().heartbeat_interval
+            await asyncio.sleep(interval)
+
+            report = health_monitor_core.perform_health_check()
+            status = report.status
+
+            if status == HealthStatus.UNRESPONSIVE:
+                consecutive_failures += 1
+                log.info(
+                    "UNRESPONSIVE - %d consecutive failures, "
+                    "IDE may be frozen, consider retry or restart",
+                    consecutive_failures,
+                )
+            elif status == HealthStatus.DEGRADED:
+                consecutive_failures += 1
+                log.info(
+                    "DEGRADED - backend responding slowly"
+                )
+            else:
+                if consecutive_failures > 0:
+                    log.info(
+                        "RECOVERED after %d failures",
+                        consecutive_failures,
+                    )
+                    consecutive_failures = 0
+                else:
+                    # TODO: testing only, change to debug before release
+                    log.info("Heartbeat OK")
+
+            stall_results = report.tasks.stalled_tasks
+            if stall_results:
+                stalled_ids = [
+                    s.task_id for s in stall_results if s.is_stalled
+                ]
+                if stalled_ids:
+                    log.info(
+                        "%d stalled task(s): %s",
+                        len(stalled_ids),
+                        ", ".join(stalled_ids),
+                    )
+
+        except asyncio.CancelledError:
+            log.info("Heartbeat loop stopped")
+            break
+        except Exception as e:
+            log.info("Heartbeat error: %s", e)
+            await asyncio.sleep(10)
+
+
+# 用于在 lifespan 和 create_server 之间传递组件实例
+_lifespan_context: dict = {}
+
+
+@asynccontextmanager
+async def _health_monitor_lifespan(server):
+    """Lifespan handler: starts background heartbeat on server startup."""
+    ctx = _lifespan_context
+    task = asyncio.create_task(
+        _background_heartbeat_loop(
+            ctx["health_monitor_core"],
+            ctx["config_manager"],
+        )
+    )
+    log.info("Health monitor background task started")
+    try:
+        yield {"background_task": task}
+    finally:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+        log.info("Health monitor background task stopped")
 
 
 def create_server() -> FastMCP:
     """Create and configure the MCP server with all tools registered.
 
-    Instantiates all component modules and registers four MCP tools:
-    check_health, get_status, configure_monitor, get_alert_history.
+    Starts a background heartbeat loop via lifespan that logs
+    health status to stderr (visible in Kiro MCP Logs panel).
     """
-    # -- Instantiate components --
+    global _lifespan_context
+
     config_manager = ConfigManager()
     notification_manager = NotificationManager()
     config = config_manager.get_config()
@@ -39,10 +135,13 @@ def create_server() -> FastMCP:
         window_resume_detector=window_resume_detector,
     )
 
-    # -- Create MCP server --
-    mcp = FastMCP("kiro-health-monitor")
+    _lifespan_context.update({
+        "health_monitor_core": health_monitor_core,
+        "config_manager": config_manager,
+    })
 
-    # -- Tool: check_health --
+    mcp = FastMCP("kiro-health-monitor", lifespan=_health_monitor_lifespan)
+
     @mcp.tool()
     def check_health() -> dict:
         """Execute an instant health check and return the full health report.
@@ -53,7 +152,6 @@ def create_server() -> FastMCP:
         report = health_monitor_core.perform_health_check()
         return dataclasses.asdict(report)
 
-    # -- Tool: get_status --
     @mcp.tool()
     def get_status() -> dict:
         """Get a concise status summary of the health monitor.
@@ -71,18 +169,14 @@ def create_server() -> FastMCP:
             else datetime.fromtimestamp(0, tz=timezone.utc).isoformat()
         )
 
-        active_count = sum(1 for r in stall_results if not r.is_stalled)
-        stalled_count = sum(1 for r in stall_results if r.is_stalled)
-
         return {
             "status": status.value,
             "last_heartbeat": last_heartbeat_iso,
             "last_heartbeat_latency": heartbeat_info.last_latency,
-            "active_task_count": active_count,
-            "stalled_task_count": stalled_count,
+            "active_task_count": sum(1 for r in stall_results if not r.is_stalled),
+            "stalled_task_count": sum(1 for r in stall_results if r.is_stalled),
         }
 
-    # -- Tool: configure_monitor --
     @mcp.tool()
     def configure_monitor(
         heartbeat_interval: Optional[int] = None,
@@ -114,7 +208,6 @@ def create_server() -> FastMCP:
         result = config_manager.update_config(partial)
         return dataclasses.asdict(result)
 
-    # -- Tool: get_alert_history --
     @mcp.tool()
     def get_alert_history(
         start_time: Optional[str] = None,

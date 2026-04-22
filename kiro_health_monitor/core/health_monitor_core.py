@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-import logging
 import time
 from typing import Optional
 
-from src.config.config_manager import ConfigManager
-from src.detectors.heartbeat_checker import HeartbeatChecker
-from src.detectors.task_status_detector import TaskStatusDetector
-from src.detectors.window_resume_detector import WindowResumeDetector
-from src.notifications.notification_manager import NotificationManager
-from src.types import (
+from kiro_health_monitor.config.config_manager import ConfigManager
+from kiro_health_monitor.detectors.heartbeat_checker import HeartbeatChecker
+from kiro_health_monitor.detectors.task_status_detector import TaskStatusDetector
+from kiro_health_monitor.detectors.window_resume_detector import WindowResumeDetector
+from kiro_health_monitor.notifications.notification_manager import NotificationManager
+from kiro_health_monitor.types import (
     Alert,
     AlertLevel,
     AlertSummary,
@@ -27,7 +26,7 @@ from src.types import (
     WindowInfo,
 )
 
-logger = logging.getLogger(__name__)
+from kiro_health_monitor.log import log
 
 
 class HealthMonitorCore:
@@ -89,7 +88,7 @@ class HealthMonitorCore:
 
     def perform_deep_health_check(self) -> HealthReport:
         """Execute a deep health check (logs that it's a deep check)."""
-        logger.info("Performing deep health check")
+        log.info("Performing deep health check")
         return self.perform_health_check()
 
     def update_status(self, source: CheckSource, result: CheckResult) -> None:
@@ -111,13 +110,13 @@ class HealthMonitorCore:
         self._window_resume_detector.start_listening()
         self._window_resume_detector.on_resume(self._on_window_resume)
 
-        logger.info("HealthMonitorCore started")
+        log.info("HealthMonitorCore started")
 
     async def stop(self) -> None:
         """Stop monitoring."""
         await self._heartbeat_checker.stop()
         self._window_resume_detector.stop_listening()
-        logger.info("HealthMonitorCore stopped")
+        log.info("HealthMonitorCore stopped")
 
     # ------------------------------------------------------------------
     # Internal — heartbeat handling
@@ -213,7 +212,7 @@ class HealthMonitorCore:
                     )
                 )
             except Exception:
-                logger.exception(
+                log.exception(
                     "Auto retry notification failed for task %s", task_id
                 )
                 self._notification_manager.send_alert(
@@ -294,7 +293,7 @@ class HealthMonitorCore:
                 )
             )
         elif report.status == HealthStatus.HEALTHY:
-            logger.info("Window resumed — all services healthy")
+            log.info("Window resumed — all services healthy")
 
     # ------------------------------------------------------------------
     # Internal — helpers

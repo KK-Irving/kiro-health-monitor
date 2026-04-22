@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Any
 
-from src.types import (
+from kiro_health_monitor.types import (
     CONFIG_RANGES,
     ConfigUpdateResult,
     MonitorConfig,

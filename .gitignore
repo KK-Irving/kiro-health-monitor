@@ -4,3 +4,6 @@ dist/
 build/
 *.egg-info/
 .pytest_cache/
+
+# Local MCP config (contains machine-specific paths for debugging)
+.kiro/settings/mcp.json

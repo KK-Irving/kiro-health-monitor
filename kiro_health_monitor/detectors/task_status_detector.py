@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import logging
 import time
 
-from src.types import StallCheckResult, TrackedTask
+from kiro_health_monitor.log import log
+from kiro_health_monitor.types import StallCheckResult, TrackedTask
 
-logger = logging.getLogger(__name__)
 
 
 class TaskStatusDetector:
@@ -27,31 +26,31 @@ class TaskStatusDetector:
     def track_task(self, task: TrackedTask) -> None:
         """Register a task for monitoring."""
         self._tasks[task.task_id] = task
-        logger.info("Tracking task %s (%s)", task.task_id, task.name)
+        log.info("Tracking task %s (%s)", task.task_id, task.name)
 
     def untrack_task(self, task_id: str) -> None:
         """Remove a task from monitoring."""
         if task_id in self._tasks:
             del self._tasks[task_id]
-            logger.info("Untracked task %s", task_id)
+            log.info("Untracked task %s", task_id)
         else:
-            logger.warning("Attempted to untrack unknown task %s", task_id)
+            log.warning("Attempted to untrack unknown task %s", task_id)
 
     def update_task_progress(self, task_id: str, timestamp: float) -> None:
         """Update the last progress timestamp for a tracked task."""
         if task_id not in self._tasks:
-            logger.warning("Cannot update progress for unknown task %s", task_id)
+            log.warning("Cannot update progress for unknown task %s", task_id)
             return
         self._tasks[task_id].last_progress_update = timestamp
-        logger.debug("Updated progress for task %s at %.3f", task_id, timestamp)
+        log.debug("Updated progress for task %s at %.3f", task_id, timestamp)
 
     def update_task_log_output(self, task_id: str, timestamp: float) -> None:
         """Update the last log output timestamp for a tracked task."""
         if task_id not in self._tasks:
-            logger.warning("Cannot update log output for unknown task %s", task_id)
+            log.warning("Cannot update log output for unknown task %s", task_id)
             return
         self._tasks[task_id].last_log_output = timestamp
-        logger.debug("Updated log output for task %s at %.3f", task_id, timestamp)
+        log.debug("Updated log output for task %s at %.3f", task_id, timestamp)
 
     def check_for_stalls(self) -> list[StallCheckResult]:
         """Check all tracked tasks for stalls.

@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import time
 from typing import Callable, Optional
 
-from src.types import HeartbeatResult
+from kiro_health_monitor.log import log
+from kiro_health_monitor.types import HeartbeatResult
 
-logger = logging.getLogger(__name__)
 
 
 class HeartbeatChecker:
@@ -43,12 +42,12 @@ class HeartbeatChecker:
         *interval* seconds.
         """
         if self._running:
-            logger.warning("HeartbeatChecker is already running")
+            log.warning("HeartbeatChecker is already running")
             return
 
         self._running = True
         self._task = asyncio.create_task(self._heartbeat_loop(interval))
-        logger.info("HeartbeatChecker started with interval=%ds", interval)
+        log.info("HeartbeatChecker started with interval=%ds", interval)
 
     async def stop(self) -> None:
         """Stop heartbeat detection by cancelling the background task."""
@@ -60,7 +59,7 @@ class HeartbeatChecker:
             except asyncio.CancelledError:
                 pass
             self._task = None
-        logger.info("HeartbeatChecker stopped")
+        log.info("HeartbeatChecker stopped")
 
     async def ping(self) -> HeartbeatResult:
         """Execute a single heartbeat check.
@@ -124,7 +123,7 @@ class HeartbeatChecker:
             try:
                 self._on_result(result)
             except Exception:  # noqa: BLE001
-                logger.exception("on_result callback raised an exception")
+                log.exception("on_result callback raised an exception")
 
         return result
 
@@ -147,5 +146,5 @@ class HeartbeatChecker:
                 await self.ping()
                 await asyncio.sleep(interval)
         except asyncio.CancelledError:
-            logger.debug("Heartbeat loop cancelled")
+            log.debug("Heartbeat loop cancelled")
             raise
