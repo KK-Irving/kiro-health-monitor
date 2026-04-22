@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "kiro-health-monitor": {
+      "command": "uvx",
+      "args": ["kiro-health-monitor"],
+      "env": {},
+      "disabled": false,
+      "autoApprove": ["check_health", "get_status"]
+    }
+  }
+}
