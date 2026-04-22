@@ -1,3 +1,11 @@
+---
+name: "kiro-health-monitor"
+displayName: "Kiro Health Monitor"
+description: "Kiro IDE 健康状态监控 Power，提供心跳检测、任务卡顿检测、窗口恢复检测和自动重试功能"
+keywords: ["kiro", "health", "monitor", "heartbeat", "stall", "responsive", "watchdog"]
+author: "KK-Irving"
+---
+
 # Kiro Health Monitor
 
 Kiro IDE 健康状态监控 Power，提供对 Kiro IDE 后台服务的主动健康检测能力。
